@@ -15,13 +15,15 @@ app.use(cors());
 
 app.post("/voice", upload.single("audio"), async (req, res) => {
   try {
-    // 1️⃣ Speech to Text
+    console.log("Received file:", req.file.path);
+
     const transcript = await openai.audio.transcriptions.create({
       file: fs.createReadStream(req.file.path),
       model: "gpt-4o-mini-transcribe",
     });
 
-    // 2️⃣ GPT Response
+    console.log("User said:", transcript.text);
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: transcript.text }],
@@ -29,7 +31,8 @@ app.post("/voice", upload.single("audio"), async (req, res) => {
 
     const reply = completion.choices[0].message.content;
 
-    // 3️⃣ Text to Speech
+    console.log("AI reply:", reply);
+
     const speech = await openai.audio.speech.create({
       model: "gpt-4o-mini-tts",
       voice: "alloy",
@@ -37,9 +40,11 @@ app.post("/voice", upload.single("audio"), async (req, res) => {
     });
 
     const buffer = Buffer.from(await speech.arrayBuffer());
+
     res.setHeader("Content-Type", "audio/mpeg");
     res.send(buffer);
   } catch (err) {
+    console.error(err);
     res.status(500).send(err.toString());
   }
 });
